@@ -119,9 +119,9 @@ end)
 
 player.Idled:Connect(function()
 	if antiAfkEnabled then
-		VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+		VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 		task.wait(1)
-		VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+		VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 	end
 end)
 
@@ -133,7 +133,7 @@ end)
 
 -- Fly function
 local function flyTo(pos, speed)
-	if not rootPart then return end
+	if not rootPart or not rootPart.Parent then return end
 	local distance = (pos - rootPart.Position).Magnitude
 	local duration = distance / speed
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
@@ -168,12 +168,12 @@ toggleBtn.MouseButton1Click:Connect(function()
 			while isActive do
 				character = player.Character or player.CharacterAdded:Wait()
 				rootPart = character:FindFirstChild("HumanoidRootPart")
-				if rootPart then
+				if rootPart and rootPart.Parent then
 					local closest, shortest = nil, math.huge
 					for _, obj in ipairs(workspace:GetDescendants()) do
-						if obj:IsA("BasePart") and obj.Name == "Coin_Server" then
+						if obj:IsA("BasePart") and obj.Name == "Coin_Server" and not visitedPositions[obj] then
 							local dist = (obj.Position - rootPart.Position).Magnitude
-							if dist < shortest and dist < 250 and not visitedPositions[obj] then
+							if dist < shortest and dist < 250 then
 								closest = obj
 								shortest = dist
 							end
@@ -189,17 +189,24 @@ toggleBtn.MouseButton1Click:Connect(function()
 					end
 				end
 
-				-- ==== Авто-ресет прямо здесь ====
-				local coinTextLabel = player:WaitForChild("PlayerGui"):WaitForChild("MainGUI")
-					:WaitForChild("Game"):WaitForChild("CoinBags")
-					:WaitForChild("Container"):WaitForChild("Candy")
-					:WaitForChild("CurrencyFrame"):WaitForChild("Icon")
-					:WaitForChild("Coins")
+				-- Auto-reset check safely
 				if autoResetEnabled then
-					local coins = tonumber(coinTextLabel.Text)
-					if coins and coins >= 40 then
-						if player.Character then
-							player.Character:BreakJoints()
+					local coinTextLabel
+					local mainGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("MainGUI")
+					if mainGui then
+						local gameGui = mainGui:FindFirstChild("Game")
+						local coinBags = gameGui and gameGui:FindFirstChild("CoinBags")
+						local container = coinBags and coinBags:FindFirstChild("Container")
+						local candy = container and container:FindFirstChild("Candy")
+						local currencyFrame = candy and candy:FindFirstChild("CurrencyFrame")
+						local icon = currencyFrame and currencyFrame:FindFirstChild("Icon")
+						coinTextLabel = icon and icon:FindFirstChild("Coins")
+					end
+
+					if coinTextLabel then
+						local coins = tonumber(coinTextLabel.Text)
+						if coins and coins >= 40 and character then
+							character:BreakJoints()
 						end
 					end
 				end
